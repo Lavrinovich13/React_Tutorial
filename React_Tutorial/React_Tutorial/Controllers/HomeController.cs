@@ -42,5 +42,12 @@ namespace React_Tutorial.Controllers
         {
             return Json(_comments, JsonRequestBehavior.AllowGet);
         }
+
+        [HttpPost]
+        public ActionResult AddComment(CommentModel comment)
+        {
+            _comments.Add(comment);
+            return Content("Success");
+        }
     }
 }

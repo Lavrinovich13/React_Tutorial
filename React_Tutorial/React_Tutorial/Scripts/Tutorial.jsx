@@ -1,10 +1,38 @@
 ﻿var CommentBox = React.createClass({
+    getInitialState: function() {
+        return { data: [] };
+    },
+    handleCommentSubmit: function(comment) {
+        var data = new FormData();
+        data.append('Author', comment.Author);
+        data.append('Text', comment.Text);
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('post', this.props.submitUrl, true);
+        xhr.onload = function() {
+            this.loadCommentsFromServer();
+        }.bind(this);
+        xhr.send(data);
+    },
+    loadCommentsFromServer: function () {
+        var xhr = new XMLHttpRequest();
+        xhr.open('get', this.props.url, true);
+        xhr.onload = function() {
+            var data = JSON.parse(xhr.responseText);
+            this.setState({ data: data });
+        }.bind(this);
+        xhr.send();
+    },
+    componentDidMount: function () {
+        this.loadCommentsFromServer();
+        window.setInterval(this.loadCommentsFromServer, this.props.pollInterval);
+    },
     render: function() {
         return (
             <div className="commentBox">
                 <h1>Comments</h1>
-                <CommentList data={this.props.data}/>
-                <CommentForm/>
+                <CommentList data={this.state.data}/>
+                <CommentForm onCommentSubmit={this.handleCommentSubmit}/>
             </div>
         );
     }
@@ -43,22 +71,31 @@ var Comment = React.createClass({
 });
 
 var CommentForm = React.createClass({
+    handleSubmit: function(e) {
+        e.preventDefault();
+        var author = this.refs.author.value.trim();
+        var text = this.refs.text.value.trim();
+
+        if (!text | !author)
+            return;
+
+        this.props.onCommentSubmit({Author: author, Text: text});
+        this.refs.author.value = '';
+        this.refs.text.value = '';
+        return;
+    },
     render: function() {
         return(
-            <div className="commentForm">
-                CommentForm
-            </div>
+            <form className="commentForm" onSubmit={this.handleSubmit}>
+                <input type="text" placeholder="Name" ref="author"/><br/>
+                <input type="text" placeholder="Say somethisng..." ref="text"/><br />
+                <input type="submit" value="Post" />
+            </form>
         );
     }
 });
 
-var data = [
-  { Author: "Daniel Lo Nigro", Text: "Hello ReactJS.NET World!" },
-  { Author: "Pete Hunt", Text: "This is one comment" },
-  { Author: "Jordan Walke", Text: "This is *another* comment" }
-];
-
 ReactDOM.render(
-    <CommentBox url="/comments"/>,
+    <CommentBox url="/comments" submitUrl="/comments/new" pollInterval={2000}/>,
     document.getElementById('content')
 );
